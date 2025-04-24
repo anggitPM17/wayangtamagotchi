@@ -29,9 +29,8 @@ export default function CharacterPage() {
   // Fungsi untuk Makan
   const handleMakan = async () => {
     if (character) {
-      // Update health dan exp karakter saat makan
-      const newHealth = character.stats.health + 10; // Meningkatkan health
-      const newExp = character.stats.exp + 5; // Menambah exp
+      const newHealth = character.stats.health + 10;
+      const newExp = character.stats.exp + 5;
 
       const updatedCharacter = {
         ...character,
@@ -42,7 +41,26 @@ export default function CharacterPage() {
         },
       };
 
-      // Simpan perubahan karakter ke Firebase
+      const charRef = ref(db, `characters/${auth.currentUser.uid}`);
+      await set(charRef, updatedCharacter);
+
+      setCharacter(updatedCharacter);
+    }
+  };
+
+  // Fungsi untuk Tidur
+  const handleTidur = async () => {
+    if (character) {
+      const newHealth = character.stats.health + 20; // Meningkatkan health lebih banyak setelah tidur
+
+      const updatedCharacter = {
+        ...character,
+        stats: {
+          ...character.stats,
+          health: newHealth,
+        },
+      };
+
       const charRef = ref(db, `characters/${auth.currentUser.uid}`);
       await set(charRef, updatedCharacter);
 
@@ -74,6 +92,16 @@ export default function CharacterPage() {
           className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
         >
           Makan
+        </button>
+      </div>
+
+      {/* Tombol Tidur */}
+      <div className="text-center mt-4">
+        <button
+          onClick={handleTidur}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          Tidur
         </button>
       </div>
     </div>
