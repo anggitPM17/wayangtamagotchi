@@ -1,6 +1,5 @@
-// pages/character.js
 import { useEffect, useState } from "react";
-import { auth, db, ref, get } from "../lib/firebase";
+import { auth, db, ref, get, set } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/router";
 
@@ -27,6 +26,30 @@ export default function CharacterPage() {
     return () => unsubscribe();
   }, []);
 
+  // Fungsi untuk Makan
+  const handleMakan = async () => {
+    if (character) {
+      // Update health dan exp karakter saat makan
+      const newHealth = character.stats.health + 10; // Meningkatkan health
+      const newExp = character.stats.exp + 5; // Menambah exp
+
+      const updatedCharacter = {
+        ...character,
+        stats: {
+          ...character.stats,
+          health: newHealth,
+          exp: newExp,
+        },
+      };
+
+      // Simpan perubahan karakter ke Firebase
+      const charRef = ref(db, `characters/${auth.currentUser.uid}`);
+      await set(charRef, updatedCharacter);
+
+      setCharacter(updatedCharacter); // Update state lokal
+    }
+  };
+
   if (loading) return <p className="text-center mt-10">Loading karakter...</p>;
 
   if (!character) return <p className="text-center mt-10">Karakter tidak ditemukan.</p>;
@@ -42,6 +65,16 @@ export default function CharacterPage() {
         <p>Level: {character.stats.level}</p>
         <p>EXP: {character.stats.exp}</p>
         <p>Kesehatan: {character.stats.health}</p>
+      </div>
+
+      {/* Tombol Makan */}
+      <div className="text-center mt-4">
+        <button
+          onClick={handleMakan}
+          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+        >
+          Makan
+        </button>
       </div>
     </div>
   );
