@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { auth, db, ref, get, set } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/router";
@@ -6,16 +6,16 @@ import { useRouter } from "next/router";
 export default function CharacterPage() {
   const [character, setCharacter] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [battleResult, setBattleResult] = useState(null);
+  const [selectedWeapon, setSelectedWeapon] = useState('');
+  const [selectedCompanion, setSelectedCompanion] = useState('');
   const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        router.push("/login"); // redirect ke login jika belum login
+        router.push("/login");
         return;
       }
-
       const charRef = ref(db, `characters/${user.uid}`);
       const snapshot = await get(charRef);
       if (snapshot.exists()) {
@@ -23,101 +23,77 @@ export default function CharacterPage() {
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
-  // Fungsi untuk Makan
-  const handleMakan = async () => {
-    if (character) {
-      const newHealth = character.stats.health + 10;
-      const newExp = character.stats.exp + 5;
+  const updateCharacter = async (newData) => {
+    const updatedCharacter = { ...character, ...newData };
+    await set(ref(db, `characters/${auth.currentUser.uid}`), updatedCharacter);
+    setCharacter(updatedCharacter);
+  };
 
-      const updatedCharacter = {
-        ...character,
+  const handleEat = () => {
+    if (character) {
+      updateCharacter({
         stats: {
           ...character.stats,
-          health: newHealth,
-          exp: newExp,
+          health: character.stats.health + 10,
+          exp: character.stats.exp + 5,
         },
-      };
-
-      const charRef = ref(db, `characters/${auth.currentUser.uid}`);
-      await set(charRef, updatedCharacter);
-
-      setCharacter(updatedCharacter);
+      });
     }
   };
 
-  // Fungsi untuk Tidur
-  const handleTidur = async () => {
+  const handleSleep = () => {
     if (character) {
-      const newHealth = character.stats.health + 20; // Meningkatkan health lebih banyak setelah tidur
-
-      const updatedCharacter = {
-        ...character,
+      updateCharacter({
         stats: {
           ...character.stats,
-          health: newHealth,
+          health: character.stats.health + 20,
         },
-      };
-
-      const charRef = ref(db, `characters/${auth.currentUser.uid}`);
-      await set(charRef, updatedCharacter);
-
-      setCharacter(updatedCharacter); // Update state lokal
+      });
     }
   };
 
-  // Fungsi untuk Bertarung
-  const handleBertarung = async () => {
+  const handleBattle = () => {
     if (character) {
-      // Simulasi hasil pertarungan acak
-      const battleOutcome = Math.random() > 0.5 ? "win" : "lose"; // 50% chance menang atau kalah
-
-      let updatedCharacter;
-
-      if (battleOutcome === "win") {
-        // Karakter menang: Tambah EXP dan sedikit health
-        updatedCharacter = {
-          ...character,
-          stats: {
-            ...character.stats,
-            exp: character.stats.exp + 20, // EXP bertambah
-            health: character.stats.health + 10, // Health bertambah setelah menang
-          },
-        };
-        setBattleResult("Selamat! Anda menang!");
-      } else {
-        // Karakter kalah: Kurangi health
-        updatedCharacter = {
-          ...character,
-          stats: {
-            ...character.stats,
-            exp: character.stats.exp + 5, // Masih dapat sedikit EXP meskipun kalah
-            health: character.stats.health - 10, // Kurangi health jika kalah
-          },
-        };
-        setBattleResult("Sayang sekali, Anda kalah.");
-      }
-
-      // Level Up: Jika EXP sudah mencapai 100, tingkatkan level
-      if (updatedCharacter.stats.exp >= 100) {
-        updatedCharacter.stats.level += 1; // Naik level
-        updatedCharacter.stats.exp = 0; // Reset EXP setelah level up
-        updatedCharacter.stats.health += 30; // Tambah health lebih banyak saat level up
-        setBattleResult("Level Up! Karakter Anda naik level!");
-      }
-
-      const charRef = ref(db, `characters/${auth.currentUser.uid}`);
-      await set(charRef, updatedCharacter);
-
-      setCharacter(updatedCharacter); // Update state lokal
+      const damage = Math.floor(Math.random() * 20) + 1;
+      updateCharacter({
+        stats: {
+          ...character.stats,
+          health: Math.max(0, character.stats.health - damage),
+          exp: character.stats.exp + 15,
+        },
+      });
     }
   };
+
+  const handleLevelUp = () => {
+    if (character && character.stats.exp >= 100) {
+      updateCharacter({
+        stats: {
+          level: character.stats.level + 1,
+          exp: 0,
+          health: character.stats.health + 50,
+        },
+      });
+    }
+  };
+
+  const handleWeaponChange = (weapon) => {
+    updateCharacter({ weapon });
+    setSelectedWeapon(weapon);
+  };
+
+  const handleCompanionChange = (companion) => {
+    updateCharacter({ companion });
+    setSelectedCompanion(companion);
+  };
+
+  const weapons = ["Keris", "Panah", "Buku Sakti"];
+  const companions = ["Garuda", "Naga", "Macan"];
 
   if (loading) return <p className="text-center mt-10">Loading karakter...</p>;
-
   if (!character) return <p className="text-center mt-10">Karakter tidak ditemukan.</p>;
 
   return (
@@ -133,42 +109,41 @@ export default function CharacterPage() {
         <p>Kesehatan: {character.stats.health}</p>
       </div>
 
-      {/* Tombol Makan */}
-      <div className="text-center mt-4">
-        <button
-          onClick={handleMakan}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-        >
-          Makan
-        </button>
+      {/* Interaksi */}
+      <div className="mt-4 text-center space-x-2">
+        <button onClick={handleEat} className="px-4 py-2 bg-green-500 text-white rounded-lg">Makan</button>
+        <button onClick={handleSleep} className="px-4 py-2 bg-blue-500 text-white rounded-lg">Tidur</button>
+        <button onClick={handleBattle} className="px-4 py-2 bg-red-500 text-white rounded-lg">Bertarung</button>
+        <button onClick={handleLevelUp} className="px-4 py-2 bg-purple-600 text-white rounded-lg">Naik Level</button>
       </div>
 
-      {/* Tombol Tidur */}
-      <div className="text-center mt-4">
-        <button
-          onClick={handleTidur}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-        >
-          Tidur
-        </button>
+      {/* Kustomisasi Senjata */}
+      <div className="mt-6 text-center">
+        <h3 className="font-semibold">Pilih Senjata:</h3>
+        {weapons.map((weapon) => (
+          <button
+            key={weapon}
+            onClick={() => handleWeaponChange(weapon)}
+            className={`px-4 py-2 mt-2 mr-2 ${selectedWeapon === weapon ? "bg-blue-600" : "bg-gray-400"} text-white rounded-lg`}
+          >
+            {weapon}
+          </button>
+        ))}
       </div>
 
-      {/* Tombol Bertarung */}
-      <div className="text-center mt-4">
-        <button
-          onClick={handleBertarung}
-          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-        >
-          Bertarung
-        </button>
+      {/* Kustomisasi Hewan Pendamping */}
+      <div className="mt-4 text-center">
+        <h3 className="font-semibold">Pilih Hewan Pendamping:</h3>
+        {companions.map((companion) => (
+          <button
+            key={companion}
+            onClick={() => handleCompanionChange(companion)}
+            className={`px-4 py-2 mt-2 mr-2 ${selectedCompanion === companion ? "bg-blue-600" : "bg-gray-400"} text-white rounded-lg`}
+          >
+            {companion}
+          </button>
+        ))}
       </div>
-
-      {/* Menampilkan hasil pertempuran */}
-      {battleResult && (
-        <div className="mt-4 text-center text-lg font-semibold">
-          <p>{battleResult}</p>
-        </div>
-      )}
     </div>
   );
 }
