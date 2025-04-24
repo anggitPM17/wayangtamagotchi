@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 export default function CharacterPage() {
   const [character, setCharacter] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [battleResult, setBattleResult] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -68,6 +69,45 @@ export default function CharacterPage() {
     }
   };
 
+  // Fungsi untuk Bertarung
+  const handleBertarung = async () => {
+    if (character) {
+      // Simulasi hasil pertarungan acak
+      const battleOutcome = Math.random() > 0.5 ? "win" : "lose"; // 50% chance menang atau kalah
+
+      let updatedCharacter;
+
+      if (battleOutcome === "win") {
+        // Karakter menang: Tambah EXP dan sedikit health
+        updatedCharacter = {
+          ...character,
+          stats: {
+            ...character.stats,
+            exp: character.stats.exp + 20, // EXP bertambah
+            health: character.stats.health + 10, // Health bertambah setelah menang
+          },
+        };
+        setBattleResult("Selamat! Anda menang!");
+      } else {
+        // Karakter kalah: Kurangi health
+        updatedCharacter = {
+          ...character,
+          stats: {
+            ...character.stats,
+            exp: character.stats.exp + 5, // Masih dapat sedikit EXP meskipun kalah
+            health: character.stats.health - 10, // Kurangi health jika kalah
+          },
+        };
+        setBattleResult("Sayang sekali, Anda kalah.");
+      }
+
+      const charRef = ref(db, `characters/${auth.currentUser.uid}`);
+      await set(charRef, updatedCharacter);
+
+      setCharacter(updatedCharacter); // Update state lokal
+    }
+  };
+
   if (loading) return <p className="text-center mt-10">Loading karakter...</p>;
 
   if (!character) return <p className="text-center mt-10">Karakter tidak ditemukan.</p>;
@@ -104,6 +144,23 @@ export default function CharacterPage() {
           Tidur
         </button>
       </div>
+
+      {/* Tombol Bertarung */}
+      <div className="text-center mt-4">
+        <button
+          onClick={handleBertarung}
+          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+        >
+          Bertarung
+        </button>
+      </div>
+
+      {/* Menampilkan hasil pertempuran */}
+      {battleResult && (
+        <div className="mt-4 text-center text-lg font-semibold">
+          <p>{battleResult}</p>
+        </div>
+      )}
     </div>
   );
 }
