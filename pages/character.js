@@ -101,6 +101,14 @@ export default function CharacterPage() {
         setBattleResult("Sayang sekali, Anda kalah.");
       }
 
+      // Level Up: Jika EXP sudah mencapai 100, tingkatkan level
+      if (updatedCharacter.stats.exp >= 100) {
+        updatedCharacter.stats.level += 1; // Naik level
+        updatedCharacter.stats.exp = 0; // Reset EXP setelah level up
+        updatedCharacter.stats.health += 30; // Tambah health lebih banyak saat level up
+        setBattleResult("Level Up! Karakter Anda naik level!");
+      }
+
       const charRef = ref(db, `characters/${auth.currentUser.uid}`);
       await set(charRef, updatedCharacter);
 
