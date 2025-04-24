@@ -1,4 +1,3 @@
-// components/GameScreen.js
 import { useState } from 'react';
 
 export default function GameScreen() {
@@ -49,8 +48,12 @@ export default function GameScreen() {
   };
 
   return (
-    <div style={{ padding: 20, textAlign: 'center', fontFamily: 'sans-serif' }}>
+    <div style={container}>
       <h1>Wayang Tamagotchi</h1>
+      <div style={characterContainer}>
+        <img src="/images/wayang-character.png" alt="Wayang Character" style={characterStyle} />
+        <img src="/images/companion-pet.png" alt="Companion Pet" style={petStyle} />
+      </div>
       <p>Level: {status.level}</p>
       <p>EXP: {status.exp}</p>
       <p>Kesehatan: {status.health}</p>
@@ -66,6 +69,30 @@ export default function GameScreen() {
     </div>
   );
 }
+
+const container = {
+  padding: 20,
+  textAlign: 'center',
+  fontFamily: 'sans-serif',
+};
+
+const characterContainer = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: '20px',
+  margin: '20px 0',
+};
+
+const characterStyle = {
+  width: 150,
+  height: 'auto',
+};
+
+const petStyle = {
+  width: 100,
+  height: 'auto',
+};
 
 const btn = {
   margin: 10,
